@@ -2,22 +2,22 @@
 
 namespace Task_2
 {
-    public class ExchangeRatesReaderResult
+    public class ExchangeRatesWorkerResult
     {
         public bool Success { get; }
         public List<ExchangeRate> ExchangeRates { get; }
         public bool IsUpdated { get; }
-        public string ErrorMessage { get; }
+        public string Message { get; }
 
-        public ExchangeRatesReaderResult(bool success, List<ExchangeRate> exchangeRates, bool isUpdated, string errorMessage = null)
+        public ExchangeRatesWorkerResult(bool success, List<ExchangeRate> exchangeRates, bool isUpdated, string message = null)
         {
             Success = success;
             ExchangeRates = exchangeRates;
             IsUpdated = isUpdated;
-            ErrorMessage = errorMessage;
+            Message = message;
         }
         
-        public static ExchangeRatesReaderResult Error(string errorMessage) => new ExchangeRatesReaderResult(false, null, false, errorMessage);
+        public static ExchangeRatesWorkerResult Error(string message) => new ExchangeRatesWorkerResult(false, null, false, message);
 
     }
 }

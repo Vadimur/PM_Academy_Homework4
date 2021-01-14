@@ -8,29 +8,35 @@ using Newtonsoft.Json;
 
 namespace Task_2
 {
-    public class ExchangeRatesReader
+    public class ExchangeRatesWorker
     {
         private const string Path = "cache.json";
         private readonly NbuApiWorker _nbuApi;
 
-        public ExchangeRatesReader()
+        public ExchangeRatesWorker()
         {
             _nbuApi = new NbuApiWorker();
         }
-        public void SaveExchangeRates(string content)
+
+        private void SaveExchangeRates(string content)
         {
             File.WriteAllText(Path, content);
         }
         
-        public async Task<ExchangeRatesReaderResult> ReadExchangeRates()
+        public async Task<ExchangeRatesWorkerResult> ReadExchangeRates()
         {
             bool isRatesUpdated;
             try
             {
-                await _nbuApi.UpdateExchangeRates();
+                string exchangeRatesJson = await _nbuApi.UpdateExchangeRates();
+                SaveExchangeRates(exchangeRatesJson);
                 isRatesUpdated = true;
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException)
+            {
+                isRatesUpdated = false;
+            }
+            catch (TaskCanceledException)
             {
                 isRatesUpdated = false;
             }
@@ -42,37 +48,38 @@ namespace Task_2
             }
             catch (UnauthorizedAccessException)
             {
-                return ExchangeRatesReaderResult.Error("The caller does not have the required permission.");
+                return ExchangeRatesWorkerResult.Error($"The caller does not have the permission to open {Path} file");
             }
             catch (FileNotFoundException)
             {
-                return ExchangeRatesReaderResult.Error("Cannot fetch exchange rates");
+                return ExchangeRatesWorkerResult.Error("Cannot fetch exchange rates");
             }
             catch (SecurityException)
             {
-                return ExchangeRatesReaderResult.Error("The caller does not have the required permission.");
+                return ExchangeRatesWorkerResult.Error($"Cannot open {Path} because the caller does not have the required permission.");
             }
             
             
             try
             {
                 var exchangeRates = JsonConvert.DeserializeObject<List<ExchangeRate>>(content);
+                
                 if (isRatesUpdated)
                 {
-                    return new ExchangeRatesReaderResult(true, exchangeRates, true);
+                    return new ExchangeRatesWorkerResult(true, exchangeRates, true);
                 }
                 else
                 {
-                    return  ExchangeRatesReaderResult.Error("Couldn't update exchange rates");
+                    return new ExchangeRatesWorkerResult(true, exchangeRates, true, "Couldn't update exchange rates");
                 }
             }
             catch (ArgumentNullException)
             {
-                return  ExchangeRatesReaderResult.Error("Cannot fetch exchange rates");
+                return ExchangeRatesWorkerResult.Error($"Cannot fetch exchange rates. Probably, {Path} is damaged");
             }
             catch (JsonException)
             {
-                return  ExchangeRatesReaderResult.Error("The JSON is invalid");
+                return ExchangeRatesWorkerResult.Error($"{Path} is damaged");
             }
             
         }
